@@ -1,2 +1,3 @@
 # gophercises
-Having some fun with Go
+
+Having fun with [some Go projects](https://courses.calhoun.io/courses/cor_gophercises).
