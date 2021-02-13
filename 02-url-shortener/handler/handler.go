@@ -45,15 +45,24 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
 func YAMLHandler(ymlByte []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	var redirects []redirect
-	err := yaml.Unmarshal(ymlByte, &redirects)
+	yamlPaths, err := parseYAML(ymlByte)
 	if err != nil {
 		return nil, err
 	}
+	redirectMap := buildRedirectMap(yamlPaths)
+	return MapHandler(redirectMap, fallback), nil
+}
 
+func parseYAML(ymlByte []byte) ([]redirect, error) {
+	var redirects []redirect
+	err := yaml.Unmarshal(ymlByte, &redirects)
+	return redirects, err
+}
+
+func buildRedirectMap(redirects []redirect) map[string]string {
 	redirectMap := make(map[string]string)
 	for _, val := range redirects {
 		redirectMap[val.Path] = val.URL
 	}
-	return MapHandler(redirectMap, fallback), nil
+	return redirectMap
 }
