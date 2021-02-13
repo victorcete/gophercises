@@ -6,15 +6,17 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	urlshort "github.com/victorcete/gophercises/02-url-shortener/handler"
 )
 
 func main() {
-	yamlConfig := flag.String("file", "config.yml", "YAML file with path and URL parameters")
+	mode := flag.String("mode", "yaml", "config mode, can be `json` or `yaml`")
+	configFile := flag.String("file", "config.yaml", "file with path and URL parameters, can be `json` or `yaml`")
 	flag.Parse()
 
-	yamlBytes, err := ioutil.ReadFile(*yamlConfig)
+	configBytes, err := ioutil.ReadFile(*configFile)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -28,13 +30,29 @@ func main() {
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
-	// Build the YAMLHandler using the MapHandler as the fallback
-	yamlHandler, err := urlshort.YAMLHandler(yamlBytes, mapHandler)
-	if err != nil {
-		log.Fatalln(err)
+	var fileHandler http.HandlerFunc
+
+	switch *mode {
+	case "json":
+		// Build the YAMLHandler using the MapHandler as the fallback
+		jsonHandler, err := urlshort.JSONHandler(configBytes, mapHandler)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fileHandler = jsonHandler
+	case "yaml":
+		// Build the YAMLHandler using the MapHandler as the fallback
+		yamlHandler, err := urlshort.YAMLHandler(configBytes, mapHandler)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fileHandler = yamlHandler
+	default:
+		flag.Usage()
+		os.Exit(42)
 	}
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", fileHandler)
 }
 
 func defaultMux() *http.ServeMux {
